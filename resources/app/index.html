@@ -1,0 +1,1096 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Making your first Phaser 3 Game - Part 10</title>
+    <script src="phaser.js"></script>
+    <style type="text/css">
+        body {
+            margin: 0;
+        }
+    </style>
+</head>
+
+<body>
+
+    <script type="text/javascript">
+
+        class scene1 extends Phaser.Scene {
+            constructor() {
+                super("scene1");
+            }
+            preload() {
+                this.load.spritesheet('titre1', 'assets/titre1t.png', { frameWidth: 1504, frameHeight: 756 });
+
+
+            }
+            create() {
+                this.start = true
+
+                this.titre = this.physics.add.sprite(752, 378, 'titre1');
+                this.titre.body.immovable = true;
+                this.titre.setCollideWorldBounds(true);
+
+                this.Enter = this.input.keyboard.addKey('SPACE');
+
+                this.cursors = this.input.keyboard.createCursorKeys();
+                this.paddle = { A: false, B: false, up: false, down: false };
+                if (this.paddle.A) {
+
+                }
+                this.anims.create({
+                    key: 'titre1',
+                    frames: [{ key: 'titre1', frame: 0 }],
+                    frameRate: 15,
+                    repeat: -1
+                });
+                this.anims.create({
+                    key: 'titre2',
+                    frames: [{ key: 'titre1', frame: 1 }],
+                    frameRate: 15,
+                    repeat: -1
+                });
+
+
+            }
+
+            update() {
+                if (this.cursors.down.isDown) {
+                    this.titre.play('titre2');
+                    this.start = false
+
+                }
+                if (this.cursors.up.isDown) {
+                    this.titre.play('titre1');
+                    this.start = true
+
+                }
+
+                if (this.start == true && Phaser.Input.Keyboard.JustDown(this.Enter)) {
+                    this.scene.start('scene2');
+
+                }
+
+
+
+
+            }
+        };
+
+        class scene2 extends Phaser.Scene {
+            constructor() {
+                super("scene2");
+            }
+            preload() {
+                this.load.image('introtexte', 'assets/introtexte.png');
+
+            }
+            create() {
+                this.texte = this.physics.add.sprite(752, 378, 'introtexte');
+                this.texte.body.immovable = true;
+                this.texte.setCollideWorldBounds(true);
+
+                this.Enter = this.input.keyboard.addKey('SPACE');
+
+
+            }
+
+            update() {
+                if (Phaser.Input.Keyboard.JustDown(this.Enter)) {
+                    setTimeout(() => {
+                        this.scene.start('scene3');
+                    }, 1000);
+
+                }
+
+
+
+
+            }
+
+        };
+
+        class scene3 extends Phaser.Scene {
+            constructor() {
+                super("scene3");
+            }
+            preload() {
+                this.load.image('Placeholder', 'assets/Place holder.png');
+                this.load.image('jeton1', 'assets/jeton1.png');
+                this.load.image('nextscene2', 'assets/nextscene2.png');
+                this.load.image('dash', 'assets/dash.png');
+                this.load.spritesheet('idle', 'assets/idle.png', { frameWidth: 64, frameHeight: 64 });
+                this.load.spritesheet('checkpoint', 'assets/checkpoint1.png', { frameWidth: 96, frameHeight: 96 });
+                this.load.spritesheet('blow', 'assets/blow.png', { frameWidth: 96, frameHeight: 96 });
+                this.load.spritesheet('début anim left', 'assets/run.png', { frameWidth: 64, frameHeight: 64 });
+                this.load.spritesheet('jump', 'assets/jump.png', { frameWidth: 64, frameHeight: 70 });
+                this.load.spritesheet('attack', 'assets/anim attack.png', { frameWidth: 32, frameHeight: 32 });
+                this.load.tilemapTiledJSON("lvl1", "assets/lvl1.json");
+                this.load.image('TilesetLVL1', 'assets/tilesetLVL1.png');
+                this.load.spritesheet('roue', 'assets/scie circulaire.png', { frameWidth: 64, frameHeight: 20 });
+                this.load.spritesheet('death', 'assets/death.png', { frameWidth: 32, frameHeight: 32 });
+                this.load.spritesheet('elec', 'assets/elec2.png', { frameWidth: 32, frameHeight: 32 });
+                this.load.spritesheet('elecbleu', 'assets/elecbleu2.png', { frameWidth: 96, frameHeight: 32 });
+
+                this.load.spritesheet('fils', 'assets/fils.png', { frameWidth: 32, frameHeight: 16 });
+
+            };
+
+            create() {
+                var dir = 'left';
+                var dash = 1;
+                this.jeton1pick = false
+                this.jeton2pick = false
+                this.isFalling = false
+                this.speed = 300;
+                this.isDashing = false;
+                // chargement de la carte
+                const carteDuNiveau = this.add.tilemap("lvl1");
+
+
+                // chargement du jeu de tuiles
+                const tileset = carteDuNiveau.addTilesetImage(
+                    "tilesetLVL1",
+                    "TilesetLVL1"
+                );
+
+
+                // chargement du calque mou
+                const mou = carteDuNiveau.createLayer(
+                    "mou",
+                    tileset
+                );
+
+                // chargement du calque solide
+                const dur = carteDuNiveau.createLayer(
+                    "dur",
+                    tileset
+                );
+
+
+
+
+                // définition des tuiles de plateformes qui sont solides
+                // utilisation de la propriété estSolide
+                dur.setCollisionByProperty({ estSolide: true });
+
+                this.boutonRestart = this.input.keyboard.addKey('R');
+
+                this.cursors = this.input.keyboard.createCursorKeys();
+                this.paddle = { A: false, B: false, up: false, down: false };
+                if (this.paddle.A) {
+
+                }
+
+
+                //création player
+
+
+                this.nextscene2 = this.physics.add.sprite(15936, 576, "nextscene2")
+
+
+
+
+                this.player = this.physics.add.sprite(64, 1248, 'idle');
+                this.player.lastSaveX = 64
+                this.player.lastSaveY = 1248
+
+
+                this.jeton1 = this.physics.add.sprite(2784, 1152, 'jeton1');
+
+
+
+
+                this.physics.add.collider(this.nextscene2, dur);
+                this.physics.add.collider(this.player, dur);
+                this.physics.add.collider(this.jeton1, dur);
+
+                this.physics.add.overlap(this.player, this.nextscene2, NextScene2, null, this);
+
+
+
+
+                //physique sur la plateforme
+                this.dur = this.physics.add.staticGroup();
+
+                this.Placeholder = this.physics.add.staticGroup();
+
+                //Player physique
+                this.player.setBounce(0);
+                this.player.setCollideWorldBounds(true);
+                //----------------------------------------------------------------------------------------------------------
+
+
+                //-------------------------------------------------------------------------------------------------------------
+
+                //player set animation
+                this.anims.create({
+                    key: 'left',
+                    frames: this.anims.generateFrameNumbers('début anim left', { start: 0, end: 7 }),
+                    frameRate: 15,
+                    repeat: -1
+                });
+                this.anims.create({
+                    key: 'dash',
+                    frames: [{ key: 'dash', frame: 0 }],
+                    frameRate: 15,
+                    repeat: -1
+                });
+                this.anims.create({
+                    key: 'jump',
+                    frames: this.anims.generateFrameNumbers('jump', { start: 0, end: 7 }),
+                    frameRate: 15,
+
+                });
+                this.anims.create({
+                    key: 'fall',
+                    frames: this.anims.generateFrameNumbers('jump', { start: 8, end: 11 }),
+                    frameRate: 15,
+
+                });
+
+                this.anims.create({
+                    key: 'turn',
+                    frames: this.anims.generateFrameNumbers('idle', { start: 0, end: 11 }),
+                    frameRate: 15,
+                    repeat: -1
+                });
+                this.anims.create({
+                    key: 'roue',
+                    frames: this.anims.generateFrameNumbers('roue', { start: 0, end: 7 }),
+                    frameRate: 15,
+                    repeat: -1
+
+                });
+                this.anims.create({
+                    key: 'fils',
+                    frames: this.anims.generateFrameNumbers('fils', { start: 0, end: 19 }),
+                    frameRate: 15,
+                    repeat: -1
+
+                });
+                this.anims.create({
+                    key: 'elec',
+                    frames: this.anims.generateFrameNumbers('elec', { start: 0, end: 5 }),
+                    frameRate: 15,
+                    repeat: -1
+
+                });
+                this.anims.create({
+                    key: 'elecbleu',
+                    frames: this.anims.generateFrameNumbers('elecbleu', { start: 0, end: 3 }),
+                    frameRate: 15,
+                    repeat: -1
+
+                });
+                this.anims.create({
+                    key: 'death',
+                    frames: this.anims.generateFrameNumbers('death', { start: 0, end: 3 }),
+                    frameRate: 15,
+
+                });
+                this.anims.create({
+                    key: 'blow',
+                    frames: this.anims.generateFrameNumbers('blow', { start: 0, end: 4 }),
+                    frameRate: 15,
+                    repeat: -1
+                });
+                this.anims.create({
+                    key: 'checkpoint',
+                    frames: this.anims.generateFrameNumbers('checkpoint', { start: 0, end: 9 }),
+                    frameRate: 15,
+                    repeat: -1
+                });
+
+
+
+                this.physics.world.setBounds(0, 0, 16000, 1600);
+                this.cameras.main.setBounds(0, 0, 16000, 1600);
+                this.cameras.main.startFollow(this.player);
+                this.cameras.main.setZoom(1.2);
+
+                this.player.setSize(39, 51)
+                this.player.setOffset(11, 13)
+
+
+
+
+
+                this.GroupCheckpoint = this.physics.add.group({ allowGravity: false })
+
+                carteDuNiveau.getObjectLayer("Checkpoint").objects.forEach(checkpoint => {
+                    const CP = this.GroupCheckpoint.create(checkpoint.x, checkpoint.y, 'checkpoint')
+                    CP.anims.play('checkpoint', true)
+
+                    CP.setSize(5, 64)
+                    CP.setOrigin(0, 0)
+
+                });
+
+
+
+                //----------------------------------------------------------------------------
+                this.GroupRoue = this.physics.add.group({ allowGravity: false })
+
+                carteDuNiveau.getObjectLayer("LesRoues").objects.forEach(roue => {
+                    const Roue = this.GroupRoue.create(roue.x, roue.y, 'roue')
+                    Roue.anims.play('roue', true)
+
+
+                });
+
+                //----------------------------------------------------------------------------
+                //----------------------------------------------------------------------------
+                this.GroupFils = this.physics.add.group({ allowGravity: false })
+
+                carteDuNiveau.getObjectLayer("Fils").objects.forEach(fil => {
+                    const Fil = this.GroupFils.create(fil.x, fil.y, 'fils')
+                    Fil.anims.play('fils', true)
+
+
+                });
+
+                //----------------------------------------------------------------------------
+                //----------------------------------------------------------------------------
+                this.GroupElec = this.physics.add.group({ allowGravity: false })
+
+                carteDuNiveau.getObjectLayer("elec1").objects.forEach(elec => {
+                    const Elec = this.GroupElec.create(elec.x, elec.y, 'elec')
+                    Elec.anims.play('elec', true)
+
+
+                });
+
+                //----------------------------------------------------------------------------
+                //----------------------------------------------------------------------------
+                this.GroupElecbleu = this.physics.add.group({ allowGravity: false })
+
+                carteDuNiveau.getObjectLayer("elecbleu1").objects.forEach(elecbleu => {
+                    const Elecbleu = this.GroupElecbleu.create(elecbleu.x, elecbleu.y, 'elecbleu')
+                    Elecbleu.anims.play('elecbleu', true)
+                    Elecbleu.setSize(96, 25)
+
+
+                });
+
+                //----------------------------------------------------------------------------
+
+                this.physics.add.overlap(this.player, this.GroupRoue, this.die, null, this);
+                this.physics.add.overlap(this.player, this.GroupElec, this.die, null, this);
+                this.physics.add.overlap(this.player, this.GroupElecbleu, this.die, null, this);
+                this.physics.add.overlap(this.player, this.jeton1, collectbonus1, null, this);
+                this.physics.add.overlap(this.player, this.GroupCheckpoint, this.save, null, this);
+
+
+
+
+            };
+
+
+            update() {
+
+
+
+                if (this.isDashing == false) {
+                    if (this.cursors.left.isDown) {//si la touche gauche est appuyée
+                        this.player.dir = 'left';
+                        this.player.setVelocityX(-300);//alors vitesse négative en X
+
+                        this.dir = 'left'
+                        this.player.setFlipX(false);
+                    }
+                    else if (this.cursors.right.isDown) {//si la touche droite est appuyée
+                        this.player.dir = 'right';
+                        this.player.setVelocityX(300);//alors vitesse positive en X
+
+                        this.dir = 'right'
+                        this.player.setFlipX(true);
+                    }
+                    else { // sinon
+                        this.player.setVelocityX(0); //vitesse nulle
+
+
+                    }
+                }
+                if (this.player.body.velocity.y == 0) {
+                    if (this.player.body.velocity.x != 0) {
+                        this.player.anims.play('left', true);
+                    }
+                    else { // sinon
+
+                        this.player.anims.play('turn', true);//animation fait face caméra
+                    }
+                }
+
+
+
+
+                //DASH  
+                if (this.jeton1pick == true) {
+                    if (this.dash == 1) {
+                        if (Phaser.Input.Keyboard.JustDown(this.cursors.space)) {
+                            this.isDashing = true;
+
+
+                            //space to be the dash button
+                            if (this.dir == 'left' && this.dash > 0) {
+                                this.player.setVelocityX(-this.speed * 3);
+                                this.dash -= 1;
+                                this.player.play('dash');
+                            }
+                            else if (this.dir == 'right' && this.dash > 0) {
+                                this.player.setVelocityX(this.speed * 3);
+                                this.dash -= 1;
+                                this.player.play('dash');
+                            }
+                            setTimeout(() => {
+                                this.isDashing = false;
+                            }, 200);
+                        }
+                    }
+                }
+                if (this.isDashing) {
+                    this.player.setVelocityY(0)
+                }
+
+                if (this.player.body.onFloor()) {
+                    this.dash = 1;
+                    this.isFalling = false;
+                }
+                //anti clip
+                if (this.player.body.velocity.y > 900) {
+                    this.player.setVelocityY(850)
+                }
+
+                //DOUBLE JUMP
+
+                if (this.input.keyboard.checkDown(this.cursors.up, 3000) == true) {
+                    if (this.player.body.onFloor()) {
+                        //si touche haut appuyée ET que le perso touche le sol
+                        this.player.play('jump');
+                        this.player.setVelocityY(-500);
+                    }
+                    else if (sautBonus > 0 && this.jeton2pick == true) {//sinon c'est qu'on est en l'air : on vérifie si il te reste un saut bonus
+                        this.player.play('jump');
+                        this.player.setVelocityY(-500);
+                        sautBonus -= 1;
+                    }
+                }
+                if (this.player.body.velocity.y > 0 && !this.isFalling) {
+                    this.isFalling = true;
+                    this.player.play("fall", true);
+                }
+                if (this.player.body.onFloor()) { sautBonus = 1 }// on redonne le saut une fois que le perso atterit
+
+
+                if (Phaser.Input.Keyboard.JustDown(this.boutonRestart)) {
+                    this.player.setVelocity(0)
+                    this.player.x = this.player.lastSaveX
+                    this.player.y = this.player.lastSaveY
+                }
+            };
+
+
+            save(p, cp) {
+                p.lastSaveX = cp.x
+                p.lastSaveY = cp.y
+
+                cp.play('blow');
+
+                setTimeout(() => {
+                    cp.disableBody(true, true);
+                }, 300);
+
+
+                return
+            }
+            die() {
+                this.physics.pause();
+                this.player.anims.play('death');
+                setTimeout(() => {
+                    this.player.x = this.player.lastSaveX
+                    this.player.y = this.player.lastSaveY
+                    this.physics.resume();
+                }, 500);
+
+
+            }
+
+        }
+        class scene4 extends Phaser.Scene {
+            constructor() {
+                super("scene4");
+            }
+            preload() {
+                this.load.image('transitexte', 'assets/transitexte.png');
+
+            }
+            create() {
+                this.texte = this.physics.add.sprite(752, 378, 'transitexte');
+                this.texte.body.immovable = true;
+                this.texte.setCollideWorldBounds(true);
+
+                this.Enter = this.input.keyboard.addKey('SPACE');
+
+
+            }
+
+            update() {
+                if (Phaser.Input.Keyboard.JustDown(this.Enter)) {
+                    setTimeout(() => {
+                        this.scene.start('scene5');
+                    }, 1000);
+
+                }
+
+
+            }
+        };
+        class scene5 extends Phaser.Scene {
+            constructor() {
+                super("scene5");
+            }
+            preload() {
+                this.load.image('Placeholder', 'assets/Place holder.png');
+                this.load.image('moves', 'assets/moves.png');
+                this.load.image('Ennemi', 'assets/Ennemi.png');
+                this.load.image('jeton1', 'assets/jeton1.png');
+                this.load.image('nextscene', 'assets/next scene.png');
+                this.load.image('jeton2', 'assets/jeton2.png');
+                this.load.image('dash', 'assets/dash.png');
+                this.load.spritesheet('idle', 'assets/idle.png', { frameWidth: 64, frameHeight: 64 });
+                this.load.spritesheet('checkpoint', 'assets/checkpoint1.png', { frameWidth: 96, frameHeight: 96 });
+                this.load.spritesheet('blow', 'assets/blow.png', { frameWidth: 96, frameHeight: 96 });
+                this.load.spritesheet('début anim left', 'assets/run.png', { frameWidth: 64, frameHeight: 64 });
+                this.load.spritesheet('jump', 'assets/jump.png', { frameWidth: 64, frameHeight: 70 });
+                this.load.spritesheet('attack', 'assets/anim attack.png', { frameWidth: 32, frameHeight: 32 });
+                this.load.spritesheet('eau', 'assets/eau.png', { frameWidth: 32, frameHeight: 32 });
+                this.load.spritesheet('pira', 'assets/pira.png', { frameWidth: 64, frameHeight: 32 });
+                this.load.tilemapTiledJSON("lvl2", "assets/lvl2.json");
+                this.load.image('TilesetLVL2', 'assets/tilesetlvl2.png');
+                this.load.spritesheet('death', 'assets/death.png', { frameWidth: 32, frameHeight: 32 });
+
+
+            };
+            create() {
+                var dir = 'left';
+                var dash = 1;
+                this.jeton1pick = true
+                this.jeton2pick = false
+                this.isFalling = false
+                this.speed = 300;
+                this.isDashing = false;
+                const carteDuNiveau = this.add.tilemap("lvl2");
+
+
+                // chargement du jeu de tuiles
+                const tileset = carteDuNiveau.addTilesetImage(
+                    "tilesetlvl2",
+                    "TilesetLVL2"
+                );
+
+
+                // chargement du calque mou
+                const mou = carteDuNiveau.createLayer(
+                    "mou",
+                    tileset
+                );
+
+                // chargement du calque solide
+                const dur = carteDuNiveau.createLayer(
+                    "dur",
+                    tileset
+                );
+                this.anims.create({
+                    key: 'blow',
+                    frames: this.anims.generateFrameNumbers('blow', { start: 0, end: 4 }),
+                    frameRate: 15,
+                    repeat: -1
+                });
+                this.anims.create({
+                    key: 'checkpoint',
+                    frames: this.anims.generateFrameNumbers('checkpoint', { start: 0, end: 9 }),
+                    frameRate: 15,
+                    repeat: -1
+                });
+
+
+
+
+                this.GroupCheckpoint = this.physics.add.group({ allowGravity: false })
+
+                carteDuNiveau.getObjectLayer("Checkpoint").objects.forEach(checkpoint => {
+                    const CP = this.GroupCheckpoint.create(checkpoint.x, checkpoint.y, 'checkpoint')
+                    CP.anims.play('checkpoint', true)
+
+                    CP.setSize(5, 64)
+                    CP.setOrigin(0, 0)
+
+                });
+
+
+
+                // définition des tuiles de plateformes qui sont solides
+                // utilisation de la propriété estSolide
+                dur.setCollisionByProperty({ estSolide: true });
+                mou.setCollisionByProperty({ mort: true });
+
+
+                this.boutonRestart = this.input.keyboard.addKey('R');
+
+                this.cursors = this.input.keyboard.createCursorKeys();
+                this.paddle = { A: false, B: false, up: false, down: false };
+                if (this.paddle.A) {
+
+                }
+
+
+                //création player
+
+                this.player = this.physics.add.sprite(64, 1248, 'idle');
+                this.player.lastSaveX = 64
+                this.player.lastSaveY = 1248
+
+
+                this.jeton2 = this.physics.add.sprite(2784, 1152, 'jeton2');
+
+                this.nextscene = this.physics.add.sprite(18560, 640, "nextscene")
+
+
+
+
+                this.physics.add.collider(this.player, this.Placeholder);
+                this.physics.add.collider(this.player, dur);
+                this.physics.add.collider(this.player, mou, this.die, null, this);
+                this.physics.add.collider(this.jeton2, dur);
+
+                //physique sur la plateforme
+                this.dur = this.physics.add.staticGroup();
+                this.mou = this.physics.add.staticGroup();
+
+
+
+
+                this.ennemis = this.physics.add.group({ allowGravity: false, collideWorldBounds: true });
+
+                this.ennemi = this.ennemis.create(4900, 672, 'Ennemi')
+                this.ennemi2 = this.ennemis.create(4300, 1248, 'Ennemi')
+
+                this.moves = this.physics.add.group({ allowGravity: false, collideWorldBounds: true });
+
+                this.move = this.moves.create(14700, 1056, 'moves')
+                this.move.body.immovable = true;
+                this.move.setSize(41, 55)
+                this.move.setOffset(11, 9)
+
+                this.move2 = this.moves.create(15400, 960, 'moves')
+                this.move2.body.immovable = true;
+                this.move.setSize(41, 55)
+                this.move.setOffset(11, 9)
+
+
+
+
+                //Player physique
+                this.player.setBounce(0);
+                this.player.setCollideWorldBounds(true);
+                //----------------------------------------------------------------------------------------------------------
+                this.player.setSize(39, 51)
+                this.player.setOffset(11, 13)
+
+
+
+                //player set animation
+                this.anims.create({
+                    key: 'left',
+                    frames: this.anims.generateFrameNumbers('début anim left', { start: 0, end: 7 }),
+                    frameRate: 15,
+                    repeat: -1
+                });
+                this.anims.create({
+                    key: 'dash',
+                    frames: [{ key: 'dash', frame: 0 }],
+                    frameRate: 15,
+                    repeat: -1
+                });
+                this.anims.create({
+                    key: 'jump',
+                    frames: this.anims.generateFrameNumbers('jump', { start: 0, end: 7 }),
+                    frameRate: 15,
+
+                });
+                this.anims.create({
+                    key: 'fall',
+                    frames: this.anims.generateFrameNumbers('jump', { start: 8, end: 11 }),
+                    frameRate: 15,
+
+                });
+
+                this.anims.create({
+                    key: 'turn',
+                    frames: this.anims.generateFrameNumbers('idle', { start: 0, end: 11 }),
+                    frameRate: 15,
+                    repeat: -1
+                });
+                this.anims.create({
+                    key: 'eau',
+                    frames: this.anims.generateFrameNumbers('eau', { start: 0, end: 7 }),
+                    frameRate: 15,
+                    repeat: -1
+
+                });
+                this.anims.create({
+                    key: 'pira',
+                    frames: this.anims.generateFrameNumbers('pira', { start: 0, end: 16 }),
+                    frameRate: 15,
+                    repeat: -1
+
+                });
+                this.anims.create({
+                    key: 'death',
+                    frames: this.anims.generateFrameNumbers('death', { start: 0, end: 3 }),
+                    frameRate: 15,
+
+                });
+                //----------------------------------------------------------------------------
+                this.GroupEau = this.physics.add.group({ allowGravity: false })
+
+                carteDuNiveau.getObjectLayer("eau").objects.forEach(eau => {
+                    const Eau = this.GroupEau.create(eau.x, eau.y, 'eau')
+                    Eau.anims.play('eau', true)
+
+
+
+                });
+
+                //----------------------------------------------------------------------------
+                //----------------------------------------------------------------------------
+                this.GroupPira = this.physics.add.group({ allowGravity: false })
+
+                carteDuNiveau.getObjectLayer("pira").objects.forEach(pira => {
+                    const Pira = this.GroupPira.create(pira.x, pira.y, 'pira')
+                    Pira.anims.play('pira', true)
+
+
+
+                });
+
+                //----------------------------------------------------------------------------
+
+
+
+
+                this.physics.world.setBounds(0, 0, 19200, 1600);
+                this.cameras.main.setBounds(0, 0, 19200, 1600);
+                this.cameras.main.startFollow(this.player);
+                this.cameras.main.setZoom(1.2);
+
+
+                this.physics.add.overlap(this.player, this.jeton2, collectbonus2, null, this);
+                this.physics.add.overlap(this.player, this.GroupCheckpoint, this.save, null, this);
+                this.physics.add.overlap(this.player, this.GroupPira, this.die, null, this);
+                this.physics.add.overlap(this.player, this.ennemis, this.die, null, this);
+                this.physics.add.overlap(this.player, this.nextscene, NextScene, null, this);
+                this.physics.add.collider(this.player, this.move, this.collide, null, this);
+                this.physics.add.collider(this.player, this.move2, this.collide2, null, this);
+                this.physics.add.collider(this.nextscene, dur);
+
+
+            };
+            update() {
+
+
+
+
+                if (this.isDashing == false) {
+                    if (this.cursors.left.isDown) {//si la touche gauche est appuyée
+                        this.player.dir = 'left';
+                        this.player.setVelocityX(-300);//alors vitesse négative en X
+
+                        this.dir = 'left'
+                        this.player.setFlipX(false);
+                    }
+                    else if (this.cursors.right.isDown) {//si la touche droite est appuyée
+                        this.player.dir = 'right';
+                        this.player.setVelocityX(300);//alors vitesse positive en X
+
+                        this.dir = 'right'
+                        this.player.setFlipX(true);
+                    }
+                    else { // sinon
+                        this.player.setVelocityX(0); //vitesse nulle
+
+
+                    }
+                }
+                if (this.player.body.velocity.y == 0) {
+                    if (this.player.body.velocity.x != 0) {
+                        this.player.anims.play('left', true);
+                    }
+                    else { // sinon
+
+                        this.player.anims.play('turn', true);//animation fait face caméra
+                    }
+                }
+
+
+
+
+                //DASH  
+                if (this.jeton1pick == true) {
+                    if (this.dash == 1) {
+                        if (Phaser.Input.Keyboard.JustDown(this.cursors.space)) {
+                            this.isDashing = true;
+
+
+                            //space to be the dash button
+                            if (this.dir == 'left' && this.dash > 0) {
+                                this.player.setVelocityX(-this.speed * 3);
+                                this.dash -= 1;
+                                this.player.play('dash');
+                            }
+                            else if (this.dir == 'right' && this.dash > 0) {
+                                this.player.setVelocityX(this.speed * 3);
+                                this.dash -= 1;
+                                this.player.play('dash');
+                            }
+                            setTimeout(() => {
+                                this.isDashing = false;
+                            }, 200);
+                        }
+                    }
+                }
+                if (this.isDashing) {
+                    this.player.setVelocityY(0)
+                }
+
+                if (this.player.body.onFloor()) {
+                    this.dash = 1;
+                    this.isFalling = false;
+                }
+                //anti clip
+                if (this.player.body.velocity.y > 900) {
+                    this.player.setVelocityY(850)
+                }
+
+                //DOUBLE JUMP
+
+                if (this.input.keyboard.checkDown(this.cursors.up, 3000) == true) {
+                    if (this.player.body.onFloor()) {
+                        //si touche haut appuyée ET que le perso touche le sol
+                        this.player.play('jump');
+                        this.player.setVelocityY(-500);
+                    }
+                    else if (sautBonus > 0 && this.jeton2pick == true) {//sinon c'est qu'on est en l'air : on vérifie si il te reste un saut bonus
+                        this.player.play('jump');
+                        this.player.setVelocityY(-500);
+                        sautBonus -= 1;
+                    }
+                }
+                if (this.player.body.velocity.y > 0 && !this.isFalling) {
+                    this.isFalling = true;
+                    this.player.play("fall", true);
+                }
+                if (this.player.body.onFloor()) { sautBonus = 1 }// on redonne le saut une fois que le perso atterit
+
+
+                if (Phaser.Input.Keyboard.JustDown(this.boutonRestart)) {
+                    this.player.setVelocity(0)
+                    this.player.x = this.player.lastSaveX
+                    this.player.y = this.player.lastSaveY
+                }
+
+                if (this.ennemi.x <= 4576) {
+                    this.ennemi.setVelocityX(140);
+
+                }
+                else if (this.ennemi.x >= 4830) {
+                    this.ennemi.setVelocityX(-140);
+
+
+                }
+
+
+                if (this.ennemi2.x <= 4576) {
+                    this.ennemi2.setVelocityX(140);
+                }
+                else if (this.ennemi2.x >= 4830) {
+                    this.ennemi2.setVelocityX(-140);
+                }
+
+
+
+                if (this.move.x <= 14240) {
+                    this.move.setVelocityX(100);
+
+                }
+                else if (this.move.x >= 14656) {
+                    this.move.setVelocityX(-100);
+
+
+                }
+
+
+                if (this.move2.x <= 15040) {
+                    this.move2.setVelocityX(100);
+                }
+                else if (this.move2.x >= 15360) {
+                    this.move2.setVelocityX(-100);
+                }
+
+
+            };
+            save(p, cp) {
+                p.lastSaveX = cp.x
+                p.lastSaveY = cp.y
+
+                cp.play('blow');
+
+                setTimeout(() => {
+                    cp.disableBody(true, true);
+                }, 300);
+            }
+            die() {
+                this.physics.pause();
+                this.player.anims.play('death');
+                setTimeout(() => {
+                    this.player.x = this.player.lastSaveX
+                    this.player.y = this.player.lastSaveY
+                    this.physics.resume();
+                }, 500);
+
+
+            }
+            collide() {
+                if (this.move.body.moves && this.move.body.touching.up && this.player.body.touching.down) {
+                    this.player.x = this.move.x
+                }
+            }
+            collide2() {
+                if (this.move2.body.moves && this.move2.body.touching.up && this.player.body.touching.down) {
+                    this.player.x = this.move2.x
+                }
+            }
+
+
+        }
+        class scene6 extends Phaser.Scene {
+            constructor() {
+                super("scene6");
+            }
+            preload() {
+                this.load.image('fintexte', 'assets/fintexte.png');
+
+            }
+            create() {
+                this.texte = this.physics.add.sprite(752, 378, 'fintexte');
+                this.texte.body.immovable = true;
+                this.texte.setCollideWorldBounds(true);
+
+                this.Enter = this.input.keyboard.addKey('SPACE');
+
+
+            }
+
+            update() {
+                if (Phaser.Input.Keyboard.JustDown(this.Enter)) {
+                    setTimeout(() => {
+                        this.scene.start('scene7');
+                    }, 1000);
+
+                }
+
+
+            }
+        };
+        class scene7 extends Phaser.Scene {
+            constructor() {
+                super("scene7");
+            }
+            preload() {
+                this.load.spritesheet('cinematique fin', 'assets/cinematique fin.png', { frameWidth: 1504, frameHeight: 756 });
+                this.load.image('fin', 'assets/fin.png');
+
+
+
+
+            }
+            create() {
+                this.bool = true
+                this.anims.create({
+                    key: 'anim',
+                    frames: this.anims.generateFrameNumbers('cinematique fin', { start: 0, end: 64 }),
+                    frameRate: 10,
+                    repeat: 0
+                });
+                
+                
+                
+
+                this.pause= this.physics.add.sprite(752, 378, 'fin');
+                this.pause.body.immovable = true;
+                this.pause.setCollideWorldBounds(true);
+
+                this.screen = this.physics.add.sprite(752, 378, 'cinematique fin');
+                this.screen.body.immovable = true;
+                this.screen.setCollideWorldBounds(true);
+
+
+            }
+
+            update() {
+
+                if (this.bool == true) {
+                    this.screen.anims.play('anim',true);
+                    setTimeout(() => {
+                        this.screen.disableBody(true, true);
+                    }, 4500);
+                   
+                }
+
+
+            }
+        };
+
+
+        function collectbonus1(player, jeton1) {
+            this.jeton1.disableBody(true, true);
+            this.jeton1pick = true
+        }
+        function collectbonus2(player, jeton2) {
+            this.jeton2.disableBody(true, true);
+            this.jeton2pick = true
+        }
+        function NextScene(player, nextscene) {
+            this.scene.start('scene6');
+        }
+        function NextScene2(player, nextscene2) {
+            this.scene.start('scene4');
+        }
+
+        var sautBonus = 1; //on peut faire un saut en plus en l'air
+
+
+
+
+        var config = {
+            type: Phaser.CANVAS,
+            width: 1504,
+            height: 756,
+            physics: {
+                default: 'arcade',
+                arcade: {
+                    gravity: { y: 1000 },
+                    debug: false
+                }
+            },
+            scene: [ scene1 , scene2 , scene3 , scene4 , scene5 , scene6 , scene7 ]
+        };
+
+        new Phaser.Game(config);
+    </script>
+
+</body>
+
+</html>
